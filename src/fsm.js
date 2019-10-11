@@ -1,138 +1,154 @@
-// class FSM {
-//     /**
-//      * Creates new FSM instance.
-//      * @param config
-//      */
-//     constructor(config) {
-//       this.initial = config.initial
-//     }
-
-//     /**
-//      * Returns active state.
-//      * @returns {String}
-//      */
-//     getState(config) {
-//     }
-
-//     /**
-//      * Goes to specified state.
-//      * @param state
-//      */
-//     changeState(state) {}
-
-//     /**
-//      * Changes state according to event transition rules.
-//      * @param event
-//      */
-//     trigger(event) {}
-
-//     /**
-//      * Resets FSM state to initial.
-//      */
-//     reset() {}
-
-//     /**
-//      * Returns an array of states for which there are specified event transition rules.
-//      * Returns all states if argument is undefined.
-//      * @param event
-//      * @returns {Array}
-//      */
-//     getStates(event) {}
-
-//     /**
-//      * Goes back to previous state.
-//      * Returns false if undo is not available.
-//      * @returns {Boolean}
-//      */
-//     undo() {}
-
-//     /**
-//      * Goes redo to state.
-//      * Returns false if redo is not available.
-//      * @returns {Boolean}
-//      */
-//     redo() {}
-
-//     /**
-//      * Clears transition history
-//      */
-//     clearHistory() {}
-// }
-
-
 
 class FSM {
-    constructor(config) {
-        this.initial = config.initial;
-        this.configState = this.initial;
-        this.config = config;
+  constructor(config) {
+     if(config == undefined){
+       throw new Error('config isn\'t passed')
+     }
+    this.initial = config.initial;
+     this.initialState = config.initial;
+     this.arrStates = [];
+     
+    for(let key in config.states){
+      let obj = {}
+      let trans =  config.states[key]
+       obj.state = key;
+      for(let key in trans){
+        obj.transition = trans[key]
       }
-    getState() {
-      return this.configState;
+      this.arrStates.push(obj);
+   
     }
-    changeState(state) {
-        let states = this.config.states;
-        if (this.config.states.hasOwnProperty(state)) {
-          this.configState = state;
-        } else {
-          throw new Error(state);
+
+    }
+  getState() {
+    return this.initialState;
+  }
+  changeState(state) {
+    this.changeStatePrevAfter;
+    let flag = false;
+      for(let i = 0; i < this.arrStates.length; i++){
+        let trans = this.arrStates[i].transition
+     
+        if(state == this.arrStates[i].state){
+          this.initialState = state;
+          flag = true;
+           for(let key in trans){
+            this.changeStatePrevAfter = trans[key]
+          }  
         }
       }
+    if(flag == false){
+      throw new Error('state isn\'t exist');
+    }
+    }
     trigger(event) {
-      let flag = false;
-      let configState = this.configState;
-      let config = this.config;
-      function objectClone(config) {
-        let config2 = {};
-        for (var key in config) {
-          if (typeof config[key] == "object") {
-            config2[key] = objectClone(config[key]);
-          } else {
-            config2[key] = config[key];
+      for(let i  = 0; i < this.arrStates.length; i++){
+        let myState = this.arrStates[i].state;
+        
+        if(this.initialState == myState){
+          let myTrans = this.arrStates[i].transition;
+          if(!myTrans[event]){
+            throw new Error();
           }
         }
-        if (!config[key]) {
-          return;
-        }
-        return config2;
       }
-      function ObjectSearch(config2) {
-        for (let key in config2) {
-          if (typeof config2[key] !== "object") {
-            if (event === key) {
-              flag = true;
-              configState = config2[key];
-              return configState;
-            }
-          } else {
-            config2[key] = ObjectSearch(config2[key]);
+      this.triggerInitialState = undefined;
+      this.triggerPrevStep = undefined;
+      let flag = true;
+     for(let i = 0; i < this.arrStates.length; i++){
+       let state = this.arrStates[i];
+       
+       for(let key in state.transition){
+         if(key == event){
+           this.triggerInitialState = state.transition[key];
+           this.triggerPrevStep = state.state;
+           this.initialState = this.triggerInitialState;
+           flag = false;
+        
+         }
+       }
+       
+       if(flag == false){
+         break;
+       }
+     }
+        this.checkEvent = true;
+        return event;
+ 
+    }
+  reset() {
+   this.initialState = this.initial;
+  }
+  getStates(event) {
+    let states = [];
+    if(event == undefined){
+    for(let i = 0; i < this.arrStates.length; i++){
+      states.push(this.arrStates[i].state);
+    }
+    }
+    
+    if(event !== undefined){
+      for(let i = 0; i < this.arrStates.length; i++){
+        let stateName = this.arrStates[i].state;
+        let trans = this.arrStates[i].transition;
+        
+        for(let key in trans){
+          if(event == key){
+            states.push(stateName)
           }
+ 
         }
         
-        return configState;
-      }  
-      let config2 = objectClone(config);
-      this.configState = ObjectSearch(config2);
-      if(flag == false){
-          throw new Error(event)
-        }
-    }
-    reset() {
-      this.configState = this.initial;
-    }
-    getStates(event) {
-      let states = this.config.states;
-      let statesArr = [];
-      for(let key in states){
-        statesArr.push(key)
       }
       
-      return statesArr;
     }
-    undo() {}
-    redo() {}
-    clearHistory() {}
+  
+    return states;
+    
   }
+  undo() {
+    if(this.clearHistory == 'available'){
+      return false;
+    }
+    this.redoFlag = true;
+    if(this.initialState == this.initial){
+      return false;
+    }
+    if(this.triggerPrevStep !== undefined){
+    this.initialState = this.triggerPrevStep; 
+      return true;
+  }
+  if(this.changeStatePrevAfter !== undefined){
+    this.initialState = this.changeStatePrevAfter; 
+    return true;
+  }
+  
+  }
+  redo() {
+    if(this.clearHistory == 'available'){
+      return false;
+    }
+    this.redoFlag;
+
+    if(this.redoFlag === false){
+      return false;
+    }
+    if(this.initialState == this.initial && this.checkEvent !== true ){
+      return false;
+    }else{
+    this.triggerPrevStep = this.triggerInitialState;
+    this.initialState = this.triggerPrevStep;
+    this.redoFlag = false;
+   return true;
+    }
+
+     
+
+  }
+  clearHistory() {
+    this.clearHistory ='available';
+  }
+}
 
 module.exports = FSM;
 
